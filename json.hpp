@@ -15,6 +15,7 @@ struct ListValue;
 struct ObjectValue;
 
 struct Value {
+	virtual ~Value() = default;
 	virtual void print(std::ostream &os) const = 0;
 	virtual StringValue* tryString() = 0;
 	virtual const StringValue* tryString() const = 0;
