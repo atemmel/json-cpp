@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(Test)
-file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "./test/*.cpp")
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "./tests/*.cpp")
 add_executable(Test ${SOURCES})
 set_property(TARGET Test PROPERTY CXX_STANDARD 17)
 include_directories(.)
