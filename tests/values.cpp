@@ -22,7 +22,6 @@ TEST_CASE("Test decoding of values") {
 	SECTION("Test object validity") {
 		REQUIRE(object != nullptr);
 	}
-
 	SECTION("Test object hierarchy") {
 		SECTION("Test string member") {
 			REQUIRE(object->lookup("string") != nullptr);
@@ -36,7 +35,7 @@ TEST_CASE("Test decoding of values") {
 			auto child = object->lookup("integer");
 			REQUIRE(child->tryInt() != nullptr);
 			auto integer = child->tryInt();
-			REQUIRE(integer->value == 5);
+			REQUIRE(*integer == 5);
 		}
 		SECTION("Test list member") {
 			REQUIRE(object->lookup("list") != nullptr);
@@ -47,7 +46,7 @@ TEST_CASE("Test decoding of values") {
 			for(size_t i = 0; i < list->value.size(); i++) {
 				REQUIRE(list->value[i]->tryInt() != nullptr);
 				auto integer = list->value[i]->tryInt();
-				REQUIRE(integer->value == i + 1);
+				REQUIRE(*integer == i + 1);
 			}
 		}
 		SECTION("Test object member") {
@@ -64,7 +63,7 @@ TEST_CASE("Test decoding of values") {
 			child = object->lookup("integer");
 			REQUIRE(child->tryInt());
 			auto integer = child->tryInt();
-			REQUIRE(integer->value == 5);
+			REQUIRE(*integer == 5);
 			child = object->lookup("list");
 			REQUIRE(child->tryList() != nullptr);
 			auto list = child->tryList();
@@ -72,7 +71,7 @@ TEST_CASE("Test decoding of values") {
 			for(size_t i = 0; i < list->value.size(); i++) {
 				REQUIRE(list->value[i]->tryInt() != nullptr);
 				auto integer = list->value[i]->tryInt();
-				REQUIRE(integer->value == i + 1);
+				REQUIRE(*integer == i + 1);
 			}
 		}
 	}

@@ -322,53 +322,12 @@ private:
 
 class Decoder {
 public:
-	/*
-	void dump(std::ostream &os) const {
-		for(auto &v : map) {
-			os << v.first << ": ";
-			v.second->print(os);
-			os << '\n';
-		}
-	}
-	*/
-
 	std::unique_ptr<ObjectValue> decode(std::string_view view) {
 		sv = view;
-		/*
-		ignoreWhitespace();
-		if(!has('{')) {
-			return false;
-		}
-		
-		next();
-
-		while(!has('}')) {		
-			ignoreWhitespace();
-			if(parseKeyValue()) {
-				ignoreWhitespace();
-				continue;
-			}
-
-			return false;
-		}
-
-		return true;
-		*/
-
 		auto object = parseObject();
 		return object != nullptr ? std::unique_ptr<ObjectValue>(static_cast<ObjectValue*>(object.release())) : nullptr;
 		
 	}
-
-	/*
-	Value* operator[](const std::string_view key) {
-		auto it = map.find(key);
-		if(it == map.end()) {
-			return nullptr;
-		}
-		return it->second.get();
-	}
-	*/
 private:
 	ValuePtr parseObject() {
 		auto oldObject = activeObject;
