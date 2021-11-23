@@ -11,11 +11,15 @@ TEST_CASE("Test decoding of boolean values") {
 )";
 
 	json::Decoder decoder;
-	auto object = decoder.decode(str);
+	auto value = decoder.decode(str);
 
-	SECTION("Test object validity") {
-		REQUIRE(object != nullptr);
+	SECTION("Test value validity") {
+		REQUIRE(value != nullptr);
 	}
+	SECTION("Test object validity") {
+		REQUIRE(value->tryObject());
+	}
+	auto object = value->tryObject();
 	SECTION("Test object hierarchy") {
 		SECTION("Test false member") {
 			REQUIRE(object->lookup("boolA"));

@@ -536,10 +536,14 @@ private:
 
 class Decoder {
 public:
-	std::unique_ptr<ObjectValue> decode(std::string_view view) {
+	ValuePtr decode(std::string_view view) {
 		sv = view;
 		auto object = parseObject();
-		return object != nullptr ? std::unique_ptr<ObjectValue>(static_cast<ObjectValue*>(object.release())) : nullptr;
+		if(object == nullptr) {
+			auto list = parseList();
+			return ValuePtr(list.release());
+		}
+		return ValuePtr(object.release());
 	}
 private:
 	ValuePtr parseObject() {
