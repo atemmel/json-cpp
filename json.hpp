@@ -83,7 +83,6 @@ struct BoolValue : public Value {
 		return nullptr;
 	}
 
-
 	ListValue* tryList() override {
 		return nullptr;
 	}
