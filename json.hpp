@@ -11,6 +11,7 @@ namespace json {
 
 struct StringValue;
 struct IntValue;
+struct FloatValue;
 struct ListValue;
 struct ObjectValue;
 
@@ -21,6 +22,8 @@ struct Value {
 	virtual const StringValue* tryString() const = 0;
 	virtual IntValue* tryInt() = 0;
 	virtual const IntValue* tryInt() const = 0;
+	virtual FloatValue* tryFloat() = 0;
+	virtual const FloatValue* tryFloat() const = 0;
 	virtual ListValue* tryList() = 0;
 	virtual const ListValue* tryList() const = 0;
 	virtual ObjectValue* tryObject() = 0;
@@ -63,6 +66,14 @@ struct StringValue : public Value {
 	}
 
 	const IntValue* tryInt() const override {
+		return nullptr;
+	}
+
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
 		return nullptr;
 	}
 
@@ -116,6 +127,15 @@ struct IntValue : public Value {
 		return this;
 	}
 
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return nullptr;
+	}
+
+
 	ListValue* tryList() override {
 		return nullptr;
 	}
@@ -133,6 +153,64 @@ struct IntValue : public Value {
 	}
 
 	int64_t value;
+};
+
+struct FloatValue : public Value {
+	FloatValue(double real) : value(real) {}
+
+	operator double& () {
+		return value;
+	}
+
+	operator const double& () const {
+		return value;
+	}
+
+	void print(std::ostream &os) const override {
+		os << value;
+	}
+
+	StringValue* tryString() override {
+		return nullptr;
+	}
+
+	const StringValue* tryString() const override {
+		return nullptr;
+	}
+
+	IntValue* tryInt() override {
+		return nullptr;
+	}
+
+	const IntValue* tryInt() const override {
+		return nullptr;
+	}
+
+	FloatValue* tryFloat() override {
+		return this;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return this;
+	}
+
+	ListValue* tryList() override {
+		return nullptr;
+	}
+
+	const ListValue* tryList() const override {
+		return nullptr;
+	}
+
+	virtual ObjectValue* tryObject() override {
+		return nullptr;
+	}
+
+	virtual const ObjectValue* tryObject() const override {
+		return nullptr;
+	}
+
+	double value;
 };
 
 struct ListValue : public Value {
@@ -171,6 +249,15 @@ struct ListValue : public Value {
 	const IntValue* tryInt() const override {
 		return nullptr;
 	}
+
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return nullptr;
+	}
+
 
 	ListValue* tryList() override {
 		return this;
@@ -220,6 +307,15 @@ struct ObjectValue : public Value {
 	const IntValue* tryInt() const override {
 		return nullptr;
 	}
+
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return nullptr;
+	}
+
 
 	ListValue* tryList() override {
 		return nullptr;
@@ -402,6 +498,14 @@ SUCCESS_STRING:
 			return std::make_unique<StringValue>(view);
 		}
 
+		ptr = parseFloat();
+		if(ptr != nullptr) {
+			successLabel = &&SUCCESS_FLOAT;
+			goto SUCCESS_PARSE_COMMA;
+SUCCESS_FLOAT:
+			return ptr;
+		}
+
 		ptr = parseInt();
 		if(ptr != nullptr) {
 			successLabel = &&SUCCESS_INTEGER;
@@ -501,6 +605,48 @@ SUCCESS_PARSE_COMMA:
 			index - checkpoint);
 		next();
 		return result;
+	}
+
+	ValuePtr parseFloat() {
+		size_t checkpoint = index;
+
+		// seek while digit
+		while(index < sv.size() && std::isdigit(sv[index]) || sv[index] == '-') {
+			next();
+		}
+
+		// none found; bail
+		if(checkpoint == index) {
+			return nullptr;
+		}
+
+		if(!has('.')) {
+			index = checkpoint;
+			return nullptr; // no dot = not float
+		}
+		next();
+
+		// seek while digit
+		while(index < sv.size() && std::isdigit(sv[index])) {
+			next();
+		}
+
+		if(has('e') || has('E')) {	// Exp boys
+			next();
+			if(has('-') || has('+')) {
+				next();
+			}
+			// seek while digit
+			while(index < sv.size() && std::isdigit(sv[index])) {
+				next();
+			}
+		} 
+		double result;
+		auto charsResult = std::from_chars(sv.data() + checkpoint, sv.data() + index, result);
+		if(charsResult.ec != std::errc()) {
+			return nullptr;
+		} 
+		return std::make_unique<FloatValue>(result);
 	}
 
 	bool has(char c) {
