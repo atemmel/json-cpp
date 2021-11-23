@@ -9,6 +9,7 @@
 
 namespace json {
 
+struct BoolValue;
 struct StringValue;
 struct IntValue;
 struct FloatValue;
@@ -18,6 +19,8 @@ struct ObjectValue;
 struct Value {
 	virtual ~Value() = default;
 	virtual void print(std::ostream &os) const = 0;
+	virtual BoolValue* tryBool() = 0;
+	virtual const BoolValue* tryBool() const = 0;
 	virtual StringValue* tryString() = 0;
 	virtual const StringValue* tryString() const = 0;
 	virtual IntValue* tryInt() = 0;
@@ -32,6 +35,73 @@ struct Value {
 
 using ValuePtr = std::unique_ptr<Value>;
 using Object = std::map<std::string, ValuePtr>;
+
+struct BoolValue : public Value {
+	BoolValue(bool boolean) : value(boolean) {}
+
+	operator bool& () {
+		return value;
+	}
+
+	operator const bool& () const {
+		return value;
+	}
+
+	void print(std::ostream &os) const override {
+		os << (value ? "true" : "false");
+	}
+
+	BoolValue* tryBool() override {
+		return this;
+	}
+
+	const BoolValue* tryBool() const override {
+		return this;
+	}
+
+	StringValue* tryString() override {
+		return nullptr;
+	}
+
+	const StringValue* tryString() const override {
+		return nullptr;
+	}
+
+	IntValue* tryInt() override {
+		return nullptr;
+	}
+
+	const IntValue* tryInt() const override {
+		return nullptr;
+	}
+
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return nullptr;
+	}
+
+
+	ListValue* tryList() override {
+		return nullptr;
+	}
+
+	const ListValue* tryList() const override {
+		return nullptr;
+	}
+
+	virtual ObjectValue* tryObject() override {
+		return nullptr;
+	}
+
+	virtual const ObjectValue* tryObject() const override {
+		return nullptr;
+	}
+
+	bool value;
+};
 
 struct StringValue : public Value {
 	StringValue(const std::string& str) : value(str) {}
@@ -51,6 +121,14 @@ struct StringValue : public Value {
 
 	void print(std::ostream &os) const override {
 		os << value;
+	}
+
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
 	}
 
 	StringValue* tryString() override {
@@ -111,6 +189,14 @@ struct IntValue : public Value {
 		os << value;
 	}
 
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
+	}
+
 	StringValue* tryString() override {
 		return nullptr;
 	}
@@ -168,6 +254,14 @@ struct FloatValue : public Value {
 
 	void print(std::ostream &os) const override {
 		os << value;
+	}
+
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
 	}
 
 	StringValue* tryString() override {
@@ -234,6 +328,14 @@ struct ListValue : public Value {
 		os << ']';
 	}
 
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
+	}
+
 	StringValue* tryString() override {
 		return nullptr;
 	}
@@ -257,7 +359,6 @@ struct ListValue : public Value {
 	const FloatValue* tryFloat() const override {
 		return nullptr;
 	}
-
 
 	ListValue* tryList() override {
 		return this;
@@ -281,15 +382,25 @@ struct ListValue : public Value {
 struct ObjectValue : public Value {
 	void print(std::ostream &os) const override {
 		os << '{';
-		auto last = --value.cend();
-		for(auto  it = value.cbegin(); it != value.cend(); ++it) {
-			os << it->first << ": ";
-			it->second->print(os);
-			if(it != last) {
-				os << ", ";
+		if(!value.empty()) {
+			auto last = --value.cend();
+			for(auto  it = value.cbegin(); it != value.cend(); ++it) {
+				os << it->first << ": ";
+				it->second->print(os);
+				if(it != last) {
+					os << ", ";
+				}
 			}
 		}
 		os << '}';
+	}
+
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
 	}
 
 	StringValue* tryString() override {
@@ -315,7 +426,6 @@ struct ObjectValue : public Value {
 	const FloatValue* tryFloat() const override {
 		return nullptr;
 	}
-
 
 	ListValue* tryList() override {
 		return nullptr;
@@ -386,6 +496,10 @@ private:
 		result += ',';
 	}
 
+	void put(const bool value) {
+		result += value ? "true" : "false";
+	}
+
 	void put(const std::string &value) {
 		result += '"';
 		result += value;
@@ -426,7 +540,6 @@ public:
 		sv = view;
 		auto object = parseObject();
 		return object != nullptr ? std::unique_ptr<ObjectValue>(static_cast<ObjectValue*>(object.release())) : nullptr;
-		
 	}
 private:
 	ValuePtr parseObject() {
@@ -435,6 +548,7 @@ private:
 		activeObject = &object->value;
 		ignoreWhitespace();
 		if(!has('{')) {
+			activeObject = oldObject;
 			return nullptr;
 		}
 		
@@ -446,7 +560,7 @@ private:
 				ignoreWhitespace();
 				continue;
 			}
-
+			activeObject = oldObject;
 			return nullptr;
 		}
 
@@ -534,6 +648,14 @@ SUCCESS_OBJECT:
 			return ptr;
 		}
 
+		ptr = parseBool();
+		if(ptr != nullptr) {
+			successLabel = &&SUCCESS_BOOL;
+			goto SUCCESS_PARSE_COMMA;
+SUCCESS_BOOL:
+			return ptr;
+		}
+
 SUCCESS_PARSE_COMMA:
 		if(successLabel) {
 			ignoreWhitespace();
@@ -609,6 +731,31 @@ SUCCESS_PARSE_COMMA:
 			index - checkpoint);
 		next();
 		return result;
+	}
+
+	ValuePtr parseBool() {
+		auto trueLen = 4;
+		auto falseLen = 5;
+		if(index + trueLen >= sv.size()) {
+			return nullptr;
+		}
+
+		std::string_view view(sv.data() + index, trueLen);
+		if(view == "true") {
+			index += trueLen;
+			return std::make_unique<BoolValue>(true);
+		}
+
+		if(index + falseLen >= sv.size()) {
+			return nullptr;
+		}
+
+		view = std::string_view(sv.data() + index, falseLen);
+		if(view == "false") {
+			index += falseLen;
+			return std::make_unique<BoolValue>(false);
+		}
+		return nullptr;
 	}
 
 	ValuePtr parseFloat() {
