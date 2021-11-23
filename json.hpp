@@ -402,6 +402,10 @@ private:
 		result += std::to_string(value);
 	}
 
+	void put(const double &value) {
+		result += std::to_string(value);
+	}
+
 	template<typename ListType>
 	void put(const ListType &list) {
 		result += '[';

@@ -33,3 +33,15 @@ TEST_CASE("Test decoding of floating point values") {
 		}
 	}
 }
+
+TEST_CASE("Test encoding of floating point values") {
+	json::Encoder encoder;
+	encoder.startEncoding();
+	encoder.insert("floatA", 0.12345);
+	encoder.insert("floatB", 2.99e3);
+	encoder.stopEncoding();
+
+	SECTION("Test encoded string validity") {
+		REQUIRE(encoder.str() == "{\"floatA\":0.123450,\"floatB\":2990.000000}");
+	}
+}
