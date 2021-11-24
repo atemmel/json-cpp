@@ -31,6 +31,7 @@ struct Value {
 	virtual const ListValue* tryList() const = 0;
 	virtual ObjectValue* tryObject() = 0;
 	virtual const ObjectValue* tryObject() const = 0;
+	virtual bool isNull() const = 0;
 };
 
 using ValuePtr = std::unique_ptr<Value>;
@@ -97,6 +98,10 @@ struct BoolValue : public Value {
 
 	virtual const ObjectValue* tryObject() const override {
 		return nullptr;
+	}
+
+	virtual bool isNull() const override {
+		return false;
 	}
 
 	bool value;
@@ -170,6 +175,10 @@ struct StringValue : public Value {
 		return nullptr;
 	}
 
+	virtual bool isNull() const override {
+		return false;
+	}
+
 	std::string value;
 };
 
@@ -220,7 +229,6 @@ struct IntValue : public Value {
 		return nullptr;
 	}
 
-
 	ListValue* tryList() override {
 		return nullptr;
 	}
@@ -235,6 +243,10 @@ struct IntValue : public Value {
 
 	virtual const ObjectValue* tryObject() const override {
 		return nullptr;
+	}
+
+	virtual bool isNull() const override {
+		return false;
 	}
 
 	int64_t value;
@@ -301,6 +313,10 @@ struct FloatValue : public Value {
 
 	virtual const ObjectValue* tryObject() const override {
 		return nullptr;
+	}
+
+	virtual bool isNull() const override {
+		return false;
 	}
 
 	double value;
@@ -373,6 +389,10 @@ struct ListValue : public Value {
 
 	virtual const ObjectValue* tryObject() const override {
 		return nullptr;
+	}
+
+	virtual bool isNull() const override {
+		return false;
 	}
 
 	std::vector<ValuePtr> value;
@@ -454,7 +474,72 @@ struct ObjectValue : public Value {
 		return lookup(key);
 	}
 
+	virtual bool isNull() const override {
+		return false;
+	}
+
 	Object value;
+};
+
+struct NullValue : public Value {
+
+	void print(std::ostream &os) const override {
+		os << "null";
+	}
+
+	BoolValue* tryBool() override {
+		return nullptr;
+	}
+
+	const BoolValue* tryBool() const override {
+		return nullptr;
+	}
+
+	StringValue* tryString() override {
+		return nullptr;
+	}
+
+	const StringValue* tryString() const override {
+		return nullptr;
+	}
+
+	IntValue* tryInt() override {
+		return nullptr;
+	}
+
+	const IntValue* tryInt() const override {
+		return nullptr;
+	}
+
+	FloatValue* tryFloat() override {
+		return nullptr;
+	}
+
+	const FloatValue* tryFloat() const override {
+		return nullptr;
+	}
+
+	ListValue* tryList() override {
+		return nullptr;
+	}
+
+	const ListValue* tryList() const override {
+		return nullptr;
+	}
+
+	virtual ObjectValue* tryObject() override {
+		return nullptr;
+	}
+
+	virtual const ObjectValue* tryObject() const override {
+		return nullptr;
+	}
+
+	virtual bool isNull() const override {
+		return true;
+	}
+
+	std::vector<ValuePtr> value;
 };
 
 class Encoder {
@@ -659,6 +744,14 @@ SUCCESS_BOOL:
 			return ptr;
 		}
 
+		ptr = parseNull();
+		if(ptr != nullptr) {
+			successLabel = &&SUCCESS_NULL;
+			goto SUCCESS_PARSE_COMMA;
+SUCCESS_NULL:
+			return ptr;
+		}
+
 SUCCESS_PARSE_COMMA:
 		if(successLabel) {
 			ignoreWhitespace();
@@ -801,6 +894,16 @@ SUCCESS_PARSE_COMMA:
 			return nullptr;
 		} 
 		return std::make_unique<FloatValue>(result);
+	}
+
+	ValuePtr parseNull() {
+		const auto nullLen = 4;
+		std::string_view view(sv.data() + index, nullLen);
+		if(view == "null") {
+			index += nullLen;
+			return std::make_unique<NullValue>();
+		}
+		return nullptr;
 	}
 
 	bool has(char c) {
